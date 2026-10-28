@@ -6,7 +6,7 @@ A tiny, fun two-page site for scheduling (pointless but delightful) appointments
 
 1. **Login** (`public/index.html`): choose Prateek, Ritika, Yuvraj or Nishita from a dropdown.
 2. **Calendar** (`public/calendar.html`):
-   - **Prateek / Ritika / Yuvraj** get a pop-up saying they have only **15 minutes** to schedule, plus a live countdown. They pick a free slot in the 7-day view and choose an appointment type (chai, roast, ice cream emergency…). When time runs out, booking is locked (enforced by the server too).
+   - **Prateek / Ritika / Yuvraj** get a pop-up saying Nishita can give them only **15 minutes**, so don't hope for much. They pick a free slot in the 7-day view and choose a reason from 18 presets (chai, roast, ice cream emergency…) or enter a **custom reason**.
    - **Nishita** blocks slots with absurd actuarial events (or her own excuse), or blocks a whole day at once. Blocked slots can't be booked by the others. She can also decline bookings.
 
 ## Run it
@@ -44,4 +44,4 @@ python -m unittest -v
 ## Notes
 
 - This is a fun site: login is by name only (no passwords), so anyone who picks "Nishita" can block her calendar.
-- Slots are hourly, 8 AM – 11 PM, for the next 7 days.
+- Slots are hourly, 6 AM – 12 midnight, for the next 7 days.

@@ -5,14 +5,12 @@ import os
 import re
 import secrets
 import threading
-import time
 from datetime import date
 
 OWNER = "Nishita"
 VISITORS = ("Prateek", "Ritika", "Yuvraj")
 USERS = VISITORS + (OWNER,)
-SESSION_SECONDS = 15 * 60
-FIRST_HOUR = 8
+FIRST_HOUR = 6
 LAST_HOUR = 23
 MAX_TITLE = 60
 MAX_NOTE = 140
@@ -51,9 +49,8 @@ def clean_text(value, limit, fallback=None):
 
 
 class CalendarService:
-    def __init__(self, data_file=None, clock=time.time):
+    def __init__(self, data_file=None):
         self._data_file = data_file
-        self._clock = clock
         self._lock = threading.Lock()
         self._sessions = {}
         self._blocks = {}
@@ -76,9 +73,6 @@ class CalendarService:
             json.dump({"blocks": self._blocks, "bookings": self._bookings}, handle, indent=2)
         os.replace(tmp_path, self._data_file)
 
-    def _now_ms(self):
-        return int(self._clock() * 1000)
-
     def _session(self, token):
         session = self._sessions.get(token)
         if not session:
@@ -95,36 +89,23 @@ class CalendarService:
         session = self._session(token)
         if session["name"] == OWNER:
             raise ApiError(403, "Nishita, you cannot book yourself. Go to sleep.")
-        if self._now_ms() >= session["expires_at"]:
-            raise ApiError(403, "Time's up! Your 15 minutes are gone. Nishita's calendar moved on.")
         return session
 
     def login(self, name):
         if name not in USERS:
             raise ApiError(400, "Unknown guest. Pick a name from the list.")
-        now = self._now_ms()
-        expires_at = None if name == OWNER else now + SESSION_SECONDS * 1000
         token = secrets.token_urlsafe(24)
         with self._lock:
-            self._sessions[token] = {"name": name, "expires_at": expires_at or float("inf")}
-        return {
-            "token": token,
-            "name": name,
-            "role": "owner" if name == OWNER else "visitor",
-            "expiresAt": expires_at,
-            "now": now,
-        }
+            self._sessions[token] = {"name": name}
+        return {"token": token, "name": name, "role": "owner" if name == OWNER else "visitor"}
 
     def calendar(self, token):
         with self._lock:
             session = self._session(token)
-            expires_at = session["expires_at"]
             return {
                 "name": session["name"],
                 "blocks": dict(self._blocks),
                 "bookings": dict(self._bookings),
-                "expiresAt": None if expires_at == float("inf") else expires_at,
-                "now": self._now_ms(),
             }
 
     def block(self, token, items):

@@ -2,24 +2,15 @@ import os
 import tempfile
 import unittest
 
-from calendar_service import ApiError, CalendarService, SESSION_SECONDS
+from calendar_service import ApiError, CalendarService
 
 SLOT = "2026-11-02T10"
 OTHER_SLOT = "2026-11-02T11"
 
 
-class FakeClock:
-    def __init__(self):
-        self.now = 1_000_000.0
-
-    def __call__(self):
-        return self.now
-
-
 class CalendarServiceTest(unittest.TestCase):
     def setUp(self):
-        self.clock = FakeClock()
-        self.service = CalendarService(clock=self.clock)
+        self.service = CalendarService()
         self.nishita = self.service.login("Nishita")["token"]
         self.ritika = self.service.login("Ritika")["token"]
 
@@ -31,13 +22,9 @@ class CalendarServiceTest(unittest.TestCase):
     def test_login_rejects_unknown_name(self):
         self.assertApiError(400, self.service.login, "Mallory")
 
-    def test_visitor_gets_fifteen_minutes_owner_gets_none(self):
-        visitor = self.service.login("Yuvraj")
-        self.assertEqual(visitor["expiresAt"] - visitor["now"], SESSION_SECONDS * 1000)
-        self.assertEqual(visitor["role"], "visitor")
-        owner = self.service.login("Nishita")
-        self.assertIsNone(owner["expiresAt"])
-        self.assertEqual(owner["role"], "owner")
+    def test_login_roles(self):
+        self.assertEqual(self.service.login("Yuvraj")["role"], "visitor")
+        self.assertEqual(self.service.login("Nishita")["role"], "owner")
 
     def test_only_owner_can_block(self):
         self.assertApiError(403, self.service.block, self.ritika, [{"slot": SLOT, "title": "x"}])
@@ -60,10 +47,6 @@ class CalendarServiceTest(unittest.TestCase):
         self.service.book(self.ritika, SLOT, "Chai", "")
         self.assertApiError(409, self.service.block, self.nishita, [{"slot": SLOT, "title": "x"}])
 
-    def test_booking_after_expiry_rejected(self):
-        self.clock.now += SESSION_SECONDS + 1
-        self.assertApiError(403, self.service.book, self.ritika, SLOT, "Chai", "")
-
     def test_owner_cannot_book(self):
         self.assertApiError(403, self.service.book, self.nishita, SLOT, "Chai", "")
 
@@ -81,6 +64,12 @@ class CalendarServiceTest(unittest.TestCase):
         self.service.book(self.ritika, OTHER_SLOT, "Chai", "")
         self.service.cancel(self.ritika, OTHER_SLOT)
         self.assertEqual(self.service.calendar(self.nishita)["bookings"], {})
+
+    def test_slot_hours_cover_6am_to_midnight(self):
+        for hour in ("06", "23"):
+            self.service.book(self.ritika, "2026-11-02T" + hour, "Chai", "")
+        for hour in ("05", "24"):
+            self.assertApiError(400, self.service.book, self.ritika, "2026-11-02T" + hour, "Chai", "")
 
     def test_invalid_slots_rejected(self):
         for bad in ("nope", "2026-02-31T10", "2026-11-02T03", "2026-11-02T24", None, 5):
@@ -104,10 +93,10 @@ class CalendarServiceTest(unittest.TestCase):
     def test_data_persists_to_disk(self):
         with tempfile.TemporaryDirectory() as folder:
             path = os.path.join(folder, "data.json")
-            first = CalendarService(path, clock=self.clock)
+            first = CalendarService(path)
             token = first.login("Nishita")["token"]
             first.block(token, [{"slot": SLOT, "title": "Excel"}])
-            second = CalendarService(path, clock=self.clock)
+            second = CalendarService(path)
             token = second.login("Nishita")["token"]
             self.assertEqual(second.calendar(token)["blocks"], {SLOT: {"title": "Excel"}})
 

@@ -7,7 +7,7 @@
   }
 
   const isOwner = session.role === "owner";
-  const FIRST_HOUR = 8;
+  const FIRST_HOUR = 6;
   const LAST_HOUR = 23;
   const DAYS = 7;
 
@@ -28,13 +28,24 @@
   const APPOINTMENTS = [
     { kind: "Chai break", icon: "☕" },
     { kind: "Coffee date", icon: "🥤" },
-    { kind: "Walk outside (sunlight!)", icon: "🌳" },
+    { kind: "Lunch", icon: "🍱" },
     { kind: "Dinner", icon: "🍕" },
+    { kind: "Walk outside (sunlight!)", icon: "🌳" },
     { kind: "Gossip session", icon: "🗣️" },
     { kind: "Roast Nishita", icon: "🔥" },
     { kind: "Rescue from Excel", icon: "🛟" },
     { kind: "Ice cream emergency", icon: "🍦" },
+    { kind: "Movie night", icon: "🎬" },
+    { kind: "Gaming session", icon: "🎮" },
+    { kind: "Shopping therapy", icon: "🛍️" },
+    { kind: "Birthday / celebration", icon: "🎂" },
+    { kind: "Venting about work", icon: "😤" },
+    { kind: "Just to check you're alive", icon: "💓" },
+    { kind: "Gym buddy", icon: "🏋️" },
+    { kind: "Book club (we read 1 page)", icon: "📚" },
+    { kind: "Midnight snack run", icon: "🌮" },
   ];
+  const CUSTOM = { kind: "Custom reason", icon: "✏️", custom: true };
   const APPT_ICONS = Object.fromEntries(APPOINTMENTS.map((a) => [a.kind, a.icon]));
 
   const TICKER = [
@@ -47,7 +58,7 @@
     "Sources confirm: chai is the only thing that can pause a deadline.",
   ];
 
-  const state = { data: null, day: 0, offset: 0, expired: false };
+  const state = { data: null, day: 0 };
   const $ = (id) => document.getElementById(id);
 
   function el(tag, props, ...children) {
@@ -64,7 +75,8 @@
   const pad = (n) => String(n).padStart(2, "0");
   const dateKey = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
   const slotKey = (day, hour) => dateKey(day) + "T" + pad(hour);
-  const hourLabel = (h) => (h % 12 || 12) + (h < 12 ? " AM" : " PM");
+  const hourLabel = (h) => (h % 12 || 12) + (h % 24 < 12 ? " AM" : " PM");
+  const hourRange = (h) => hourLabel(h) + " – " + hourLabel((h + 1) % 24);
   const hourIcon = (h) => (h < 12 ? "🌅" : h < 18 ? "☀️" : "🌙");
 
   function days() {
@@ -142,8 +154,6 @@
       if (e.status === 401) {
         clearSession();
         window.location.replace("index.html");
-      } else if (e.status === 403 && !isOwner) {
-        showExpired();
       } else {
         toast("⚠️ " + e.message);
         refresh().catch(() => {});
@@ -159,20 +169,27 @@
   function slotTitle(key) {
     const [date, hour] = key.split("T");
     const [y, m, d] = date.split("-").map(Number);
-    return dayLabel(new Date(y, m - 1, d)) + " · " + hourLabel(Number(hour));
+    return dayLabel(new Date(y, m - 1, d)) + " · " + hourRange(Number(hour));
   }
 
   function bookDialog(info, day, hour) {
     let picked = null;
+    const custom = el("input", { type: "text", maxlength: "60", placeholder: "Your reason for stealing her time…" });
+    custom.hidden = true;
     const note = el("textarea", { maxlength: "140", placeholder: "Add a note (e.g. 'Bring snacks, you've forgotten what lunch is')" });
     const confirm = el("button", { class: "btn", disabled: "" }, "Lock it in 🔐");
-    const choice = chips(APPOINTMENTS, (option) => {
+    const sync = () => (confirm.disabled = !picked || (picked.custom && !custom.value.trim()));
+    const choice = chips(APPOINTMENTS.concat(CUSTOM), (option) => {
       picked = option;
-      confirm.disabled = false;
+      custom.hidden = !option.custom;
+      if (option.custom) custom.focus();
+      sync();
     });
+    custom.addEventListener("input", sync);
     confirm.addEventListener("click", () =>
       run(
-        () => api("book", { slot: info.key, kind: picked.kind, note: note.value }).then(() => confetti()),
+        () =>
+          api("book", { slot: info.key, kind: picked.custom ? custom.value.trim() : picked.kind, note: note.value }).then(() => confetti()),
         "Booked! Nishita will say she's 'just finishing one thing'. 😏"
       )
     );
@@ -181,6 +198,7 @@
       el("p", { class: "muted" }, slotTitle(info.key) + " " + hourIcon(hour)),
       el("p", {}, "What's the plan?"),
       choice,
+      custom,
       note,
       el("div", { class: "actions" }, el("button", { class: "btn ghost", onclick: closeModal }, "Cancel"), confirm)
     );
@@ -250,8 +268,8 @@
         )
       );
     }
-    if (state.expired) return showExpired();
-    return isOwner ? blockDialog(info, day, hour) : bookDialog(info, day, hour);
+    if (isOwner) return blockDialog(info, day, hour);
+    return bookDialog(info, day, hour);
   }
 
   function renderDays() {
@@ -286,8 +304,8 @@
     if (info.type === "past") text = "Gone ⏳";
     const tile = el(
       "button",
-      { class: "slot " + info.type, onclick: () => onSlotClick(info, day, hour), "aria-label": hourLabel(hour) + ": " + text },
-      el("span", { class: "slot-time" }, hourIcon(hour) + " " + hourLabel(hour)),
+      { class: "slot " + info.type, onclick: () => onSlotClick(info, day, hour), "aria-label": hourRange(hour) + ": " + text },
+      el("span", { class: "slot-time" }, hourIcon(hour) + " " + hourRange(hour)),
       el("span", { class: "slot-text" }, (info.type === "free" ? "" : icon + " ") + text)
     );
     if (info.type === "past") tile.disabled = true;
@@ -362,7 +380,6 @@
 
   async function refresh() {
     state.data = await api("calendar");
-    state.offset = state.data.now - Date.now();
     render();
   }
 
@@ -374,7 +391,7 @@
       window.location.href = "index.html";
     });
     $("modal").addEventListener("click", (event) => {
-      if (event.target === $("modal") && !state.expired) closeModal();
+      if (event.target === $("modal")) closeModal();
     });
     if (isOwner) {
       $("hero-title").textContent = "Hey Nishita, time to hide 🙈";
@@ -384,8 +401,7 @@
       $("block-day").addEventListener("click", blockWholeDay);
     } else {
       $("hero-title").textContent = "Hi " + session.name + "! Let's steal an hour 🕵️";
-      $("hero-sub").textContent = "Pick a day, find a free slot (good luck), and schedule time with the busiest actuary in town.";
-      $("timer").hidden = false;
+      $("hero-sub").textContent = "Pick a day, find a free slot (good luck), and schedule time with the busiest actuary in town. Don't expect much.";
     }
   }
 
@@ -401,40 +417,17 @@
     run(() => api("block", { items }), "Whole day blocked. Even Sunday should be scared of you.");
   }
 
-  function showExpired() {
-    state.expired = true;
-    $("timer-text").textContent = "0:00";
-    $("timer").classList.add("danger");
-    const body = $("modal-body");
-    body.replaceChildren(
-      el("h3", {}, "⌛ Time's up!"),
-      el("p", {}, "Your 15 minutes are over. Nishita's calendar has returned to its natural state: busy."),
-      el("p", { class: "muted" }, "Log in again to try your luck. She'll pretend not to notice."),
-      el("div", { class: "actions" }, el("button", { class: "btn", onclick: () => { clearSession(); window.location.href = "index.html"; } }, "Try again 🔁"))
-    );
-    $("modal").hidden = false;
-  }
-
-  function tick() {
-    if (isOwner || state.expired || !state.data) return;
-    const left = Math.max(0, state.data.expiresAt - (Date.now() + state.offset));
-    const seconds = Math.ceil(left / 1000);
-    $("timer-text").textContent = Math.floor(seconds / 60) + ":" + pad(seconds % 60);
-    $("timer").classList.toggle("danger", seconds <= 60);
-    if (left <= 0) showExpired();
-  }
-
   function welcome() {
-    const ok = el("button", { class: "btn" }, isOwner ? "Fine, let's hide 🫣" : "Challenge accepted ⚔️");
+    const ok = el("button", { class: "btn" }, isOwner ? "Fine, let's hide 🫣" : "Fine, I'll manage 😅");
     ok.addEventListener("click", closeModal);
     openModal(
-      el("h3", {}, isOwner ? "🛑 Plot twist, Nishita" : "⏱ You have only 15 minutes!"),
+      el("h3", {}, isOwner ? "🛑 Plot twist, Nishita" : "⏱ Only 15 minutes!"),
       el(
         "p",
         {},
         isOwner
           ? "Your friends are about to book you for fun. Block slots with your most boring work events and they won't be able to schedule anything there."
-          : "Nishita's time is extremely limited, so you have exactly 15 minutes to schedule your appointment. The clock is already ticking."
+          : "Nishita can give you only 15 minutes, so don't hope for much. Pick your slot wisely."
       ),
       el("div", { class: "actions" }, ok)
     );
@@ -444,9 +437,7 @@
   refresh()
     .then(() => {
       welcome();
-      tick();
-      setInterval(tick, 1000);
-      setInterval(() => !state.expired && refresh().catch(() => {}), 10000);
+      setInterval(() => refresh().catch(() => {}), 10000);
     })
     .catch(() => {
       clearSession();
