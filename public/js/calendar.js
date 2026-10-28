@@ -312,10 +312,29 @@
     return tile;
   }
 
+  function deloitteCell() {
+    return el(
+      "button",
+      {
+        class: "slot deloitte",
+        "aria-label": "12 AM – 6 AM: Booked by Deloitte",
+        onclick: () =>
+          openModal(
+            el("h3", {}, "🏢 Booked by Deloitte"),
+            el("p", { class: "muted" }, "12 AM – 6 AM, every single night"),
+            el("p", {}, isOwner ? "Yes, Nishita, this one isn't yours to unblock. Deloitte has first dibs on your nights." : "Sorry, this one is taken. Deloitte has first dibs on Nishita's nights."),
+            el("div", { class: "actions" }, el("button", { class: "btn", onclick: closeModal }, "Okay, okay 😅"))
+          ),
+      },
+      el("span", { class: "slot-time" }, "🌌 12 AM – 6 AM"),
+      el("span", { class: "slot-text" }, "🏢 Booked by Deloitte")
+    );
+  }
+
   function renderSlots() {
     const day = days()[state.day];
     const hours = Array.from({ length: LAST_HOUR - FIRST_HOUR + 1 }, (_, i) => FIRST_HOUR + i);
-    $("slots").replaceChildren(...hours.map((hour) => slotTile(day, hour)));
+    $("slots").replaceChildren(...hours.map((hour) => slotTile(day, hour)), deloitteCell());
   }
 
   function renderStats() {
