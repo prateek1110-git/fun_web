@@ -341,6 +341,7 @@
     let total = 0;
     let free = 0;
     days().forEach((day) => {
+      total++; // the permanent 12 AM – 6 AM "Booked by Deloitte" cell
       for (let hour = FIRST_HOUR; hour <= LAST_HOUR; hour++) {
         if (isPast(day, hour)) continue;
         total++;

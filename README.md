@@ -44,4 +44,4 @@ python -m unittest -v
 ## Notes
 
 - This is a fun site: login is by name only (no passwords), so anyone who picks "Nishita" can block her calendar.
-- Slots are hourly, 6 AM – 12 midnight, for the next 7 days. The last cell of each day (12 AM – 6 AM) is permanently "Booked by Deloitte" and can't be changed.
+- Slots are hourly, 6 AM – 12 midnight, for the next 7 days. The last cell of each day (12 AM – 6 AM) is permanently "Booked by Deloitte", can't be changed, and counts toward the Busy-o-Meter.
