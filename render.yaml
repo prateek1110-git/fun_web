@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: book-nishita
+    runtime: python
+    plan: free
+    buildCommand: python --version
+    startCommand: python server.py
+    healthCheckPath: /
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PYTHON_VERSION
+        value: 3.13.0

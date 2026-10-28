@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nishita's Calendar | Good luck</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="cal-page">
+  <header class="topbar">
+    <div class="brand">📅 Book <span class="grad">Nishita</span>™</div>
+    <div class="topbar-right">
+      <div class="timer" id="timer" hidden>⏱ <span id="timer-text">15:00</span></div>
+      <span class="who" id="who"></span>
+      <button class="btn small ghost" id="logout">Log out</button>
+    </div>
+  </header>
+
+  <div class="ticker" aria-hidden="true"><div class="ticker-track" id="ticker"></div></div>
+
+  <main class="layout">
+    <section class="card hero">
+      <h1 id="hero-title"></h1>
+      <p id="hero-sub"></p>
+      <div class="stats">
+        <div class="stat"><span class="stat-num" id="stat-free">0</span><span>free slots left 🦄</span></div>
+        <div class="stat"><span class="stat-num" id="stat-busy">0%</span><span>Busy-o-Meter</span></div>
+      </div>
+      <div class="meter" aria-hidden="true"><div class="meter-fill" id="meter-fill"></div></div>
+      <p class="meter-note" id="meter-note"></p>
+      <div class="owner-tools" id="owner-tools" hidden>
+        <button class="btn small" id="block-day">🔒 Workaholic mode: block this whole day</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="days" id="days" role="tablist" aria-label="Days"></div>
+      <div class="legend">
+        <span><i class="dot free"></i> Free (rare)</span>
+        <span><i class="dot blocked"></i> "Busy"</span>
+        <span><i class="dot taken"></i> Taken</span>
+        <span><i class="dot mine"></i> Yours</span>
+      </div>
+      <div class="slots" id="slots"></div>
+    </section>
+
+    <section class="card">
+      <h2 id="list-title">Appointments</h2>
+      <ul class="bookings" id="bookings"></ul>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="modal" hidden><div class="modal" id="modal-body" role="dialog" aria-modal="true"></div></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="confetti" id="confetti" aria-hidden="true"></div>
+
+  <script src="js/api.js"></script>
+  <script src="js/calendar.js"></script>
+</body>
+</html>

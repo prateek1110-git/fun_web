@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Book Nishita™ | Who dares?</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-page">
+  <div class="floaters" id="floaters" aria-hidden="true"></div>
+
+  <main class="login-card">
+    <div class="sun-moon" aria-hidden="true"><span class="sun">☀️</span><span class="moon">🌙</span></div>
+    <p class="badge">Actuarial Analyst @ Deloitte · Workaholic (certified)</p>
+    <h1>Book <span class="grad">Nishita</span><sup>™</sup></h1>
+    <p class="subtitle">
+      Probability that she's free tonight: <strong>0.03%</strong>.<br>
+      Let's beat the odds. Just for fun.
+    </p>
+
+    <form id="login-form" novalidate>
+      <label for="name">Who's trying to steal her time?</label>
+      <select id="name" required>
+        <option value="" disabled selected>Select your name…</option>
+        <option>Prateek</option>
+        <option>Ritika</option>
+        <option>Yuvraj</option>
+        <option>Nishita</option>
+      </select>
+      <p class="tease" id="tease" aria-live="polite">Pick a name. Nishita will pretend she has a minute.</p>
+      <p class="error" id="error" role="alert"></p>
+      <button type="submit" class="btn" id="go">Enter her calendar 🎟️</button>
+    </form>
+
+    <p class="fine-print">* Sleep, weekends and lunch are not guaranteed by this website.</p>
+  </main>
+
+  <script src="js/api.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>
