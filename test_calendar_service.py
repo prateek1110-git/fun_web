@@ -38,6 +38,24 @@ class CalendarServiceTest(unittest.TestCase):
         booking = self.service.calendar(self.nishita)["bookings"][SLOT]
         self.assertEqual(booking, {"by": "Ritika", "kind": "Chai", "note": "hi"})
 
+    def test_booking_triggers_notification_only_on_success(self):
+        seen = []
+        service = CalendarService(on_booking=lambda *args: seen.append(args))
+        token = service.login("Ritika")["token"]
+        service.book(token, SLOT, "Chai", "hi")
+        self.assertEqual(seen, [("Ritika", SLOT, "Chai", "hi")])
+        self.assertApiError(409, service.book, token, SLOT, "Chai", "")
+        self.assertEqual(len(seen), 1)
+
+    def test_notification_failure_does_not_break_booking(self):
+        def boom(*args):
+            raise RuntimeError("smtp down")
+
+        service = CalendarService(on_booking=boom)
+        token = service.login("Ritika")["token"]
+        service.book(token, SLOT, "Chai", "")
+        self.assertIn(SLOT, service.calendar(token)["bookings"])
+
     def test_double_booking_rejected(self):
         self.service.book(self.ritika, SLOT, "Chai", "")
         other = self.service.login("Prateek")["token"]

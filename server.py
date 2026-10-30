@@ -7,6 +7,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 from calendar_service import ApiError, CalendarService
+from mailer import Mailer, booking_message
 
 ROOT = Path(__file__).parent.resolve()
 PUBLIC = ROOT / "public"
@@ -103,9 +104,14 @@ def make_handler(service):
 def main():
     host = os.environ.get("HOST", "127.0.0.1")
     port = int(os.environ.get("PORT", "8000"))
-    service = CalendarService(os.environ.get("DATA_FILE", str(ROOT / "data.json")))
+    mailer = Mailer.from_env()
+    service = CalendarService(
+        os.environ.get("DATA_FILE", str(ROOT / "data.json")),
+        on_booking=lambda *booking: mailer.send_async(*booking_message(*booking)),
+    )
     server = ThreadingHTTPServer((host, port), make_handler(service))
     print(f"Book Nishita is live at http://{host}:{port}  (Ctrl+C to stop)")
+    print("Email notifications: " + ("ON" if mailer.enabled else "OFF (set SMTP_HOST, SMTP_USER, SMTP_PASSWORD, NOTIFY_EMAIL)"))
     try:
         server.serve_forever()
     except KeyboardInterrupt:

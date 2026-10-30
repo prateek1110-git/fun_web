@@ -49,8 +49,9 @@ def clean_text(value, limit, fallback=None):
 
 
 class CalendarService:
-    def __init__(self, data_file=None):
+    def __init__(self, data_file=None, on_booking=None):
         self._data_file = data_file
+        self._on_booking = on_booking
         self._lock = threading.Lock()
         self._sessions = {}
         self._blocks = {}
@@ -142,6 +143,12 @@ class CalendarService:
                 raise ApiError(409, "Too slow! Someone else grabbed that slot.")
             self._bookings[slot] = {"by": session["name"], "kind": kind, "note": note}
             self._save()
+            visitor = session["name"]
+        if self._on_booking:
+            try:
+                self._on_booking(visitor, slot, kind, note)
+            except Exception:
+                pass
 
     def cancel(self, token, slot):
         slot = validate_slot(slot)
